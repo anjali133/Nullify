@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Users {
+  user_id      String     @id @default(uuid())
+  name         String
+  email        String     @unique
+  created_at   DateTime   @default(now())
+  updated_at   DateTime   @updatedAt
+  uuid         String?    @unique
+  deleted_at   DateTime?
+  email_verified  Boolean    @default(false)
+  friends1     Friends[]  @relation("Friend1")
+  friends2     Friends[]  @relation("Friend2")
+  groups       Groups[]   @relation("UserGroups")
+
+  @@index([email])
+  @@index([name])
+}
+
+model Friends {
+  friendship_id Int                  @id @default(autoincrement())
+  user_id1      String               // Change to String to match Users model
+  user_id2      String               // Change to String to match Users model
+  balances      Decimal
+  status        String
+  created_at    DateTime             @default(now())
+  updated_at    DateTime             @updatedAt
+  deleted_at    DateTime?
+  expenses      Expenses[]
+  groupBalances FriendGroupBalance[]
+  user1         Users                @relation("Friend1", fields: [user_id1], references: [user_id])
+  user2         Users                @relation("Friend2", fields: [user_id2], references: [user_id])
+
+  @@index([user_id2])
+  @@index([balances])
+}
+
+
+model Groups {
+  group_id       Int                  @id @default(autoincrement())
+  name           String
+  member_details Json
+  created_at     DateTime             @default(now())
+  updated_at     DateTime             @updatedAt
+  deleted_at     DateTime?
+  simplify_debt  Boolean
+  expenses       Expenses[]
+  groupBalances  FriendGroupBalance[]
+  users          Users[]              @relation("UserGroups")
+
+  @@index([name])
+}
+
+model Expenses {
+  expense_id    Int       @id @default(autoincrement())
+  name          String
+  date          DateTime
+  total_amount  Decimal
+  split_type    String
+  paid_by       Json    // Change to String to match user_id in Users
+  split_details Json
+  group_id      Int?
+  is_settled    Boolean
+  created_at    DateTime  @default(now())
+  friendship_id Int?
+  updated_at    DateTime  @updatedAt
+  deleted_at    DateTime?
+  friend        Friends?  @relation(fields: [friendship_id], references: [friendship_id])
+  group         Groups?   @relation(fields: [group_id], references: [group_id])
+
+  @@index([group_id])
+}
+
+
+model FriendGroupBalance {
+  id            Int       @id @default(autoincrement())
+  friendship_id Int
+  group_id      Int
+  balances      Decimal
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+  deleted_at    DateTime?
+  friend        Friends   @relation(fields: [friendship_id], references: [friendship_id])
+  group         Groups    @relation(fields: [group_id], references: [group_id])
+
+  @@index([friendship_id])
+  @@index([group_id])
+  @@index([balances])
+  @@unique([friendship_id, group_id])
+}
